@@ -41,23 +41,20 @@ async def load_target_image():
 
 
 def show_image(img_bgr):
-    # Encode image to PNG in Python
+
     ok, png = cv2.imencode(".png", img_bgr)
     if not ok:
         raise RuntimeError("PNG encoding failed")
 
-    # Convert to JS Uint8Array
     u8 = Uint8Array.new(png.tobytes())
 
-    # Create Blob (same as browser file object)
+    #funny blob heh
     blob = Blob.new([u8], {"type": "image/png"})
 
-    # Create object URL
     url = window.URL.createObjectURL(blob)
 
-    # Display / overwrite
     container = document.getElementById("output_upload")
-    container.innerHTML = ""   # overwrite previous output
+    container.innerHTML = ""
 
     img = document.createElement("img")
     img.src = url
@@ -68,7 +65,7 @@ def show_image(img_bgr):
 # Core algorithm
 # -------------------------------
 
-async def rearrange_pixels_with_motion(start_img, ref_img, steps=10):
+async def rearrange(start_img, ref_img, steps=10):
     h, w = start_img.shape[:2]
     ref_img = cv2.resize(ref_img, (w, h), interpolation=cv2.INTER_AREA)
 
@@ -99,12 +96,9 @@ async def rearrange_pixels_with_motion(start_img, ref_img, steps=10):
         frame_bgr = cv2.cvtColor(frame, cv2.COLOR_LAB2BGR)
         show_image(frame_bgr)
         print("hello world")
-        await asyncio.sleep(0.05)  # animation pacing
+        await asyncio.sleep(0.05)
 
-
-# -------------------------------
-# Button handler
-# -------------------------------
+--
 
 async def run_clicked(event):
     file_input = document.getElementById("file-upload")
@@ -116,7 +110,7 @@ async def run_clicked(event):
     start_img = await read_file_from_input(file_obj)
     ref_img   = await load_target_image()
 
-    await rearrange_pixels_with_motion(start_img, ref_img, steps=15)
+    await rearrange(start_img, ref_img, steps=15)
 
 
 document.getElementById("run_btn").addEventListener(
