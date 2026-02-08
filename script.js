@@ -2,9 +2,22 @@ function place(img, x, y, h, w) {
     const n_img = document.createElement("img");
     n_img.setAttribute("src", img);
     n_img.setAttribute("alt", "a photo of james");
-    n_img.setAttribute("style", `width:${w}px;height:${h}px;position:absolute;left:${x}px;top:${y}px`);
+    n_img.setAttribute("style", `width:${w}px;height:${h}px;position:absolute;left:${x}px;top:${y+50}px`);
     const element = document.getElementById("james_box");
     element.appendChild(n_img);
+}
+
+function place2(img, x, y, h, w) {
+    const n_img = document.createElement("img");
+    n_img.setAttribute("src", img);
+    n_img.setAttribute("alt", "a photo of james");
+    n_img.setAttribute("style", `width:${w}px;height:${h}px;position:absolute;left:${x+50}px;top:${y+50}px`);
+    const element = document.getElementById("james_box_2");
+    element.appendChild(n_img);
+}
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 function cyrb128(str) {
@@ -46,24 +59,129 @@ function mod105(int) {
     }
 }
 
+function buildCollage(rand) {
+    const container = document.getElementById("james_box");
+
+    container.innerHTML = "";
+
+    const boxW = container.clientWidth;
+    const boxH = container.clientHeight || 600;
+
+    const holeW = boxW * 0.2;
+    const holeH = boxH * 0.2;
+    const holeX1 = (boxW - holeW) / 2;
+    const holeY1 = (boxH - holeH) / 2;
+    const holeX2 = holeX1 + holeW;
+    const holeY2 = holeY1 + holeH;
+
+    let left   = 0;
+    let top    = 0;
+    let right  = boxW;
+    let bottom = boxH;
+
+    let edge = 0; // 0=top,1=right,2=bottom,3=left
+    let cursor = 0;
+
+    function randRange(min, max) {
+        return min + rand() * (max - min);
+    }
+
+    function overlapsHole(x, y, w, h) {
+        return !(
+            x + w < holeX1 ||
+            x > holeX2 ||
+            y + h < holeY1 ||
+            y > holeY2
+        );
+    }
+
+    let indices = [];
+    for (let i = 0; i < 105; i++) indices.push(i);
+
+    for (let i = indices.length - 1; i > 0; i--) {
+        const j = Math.floor(rand() * (i + 1));
+        [indices[i], indices[j]] = [indices[j], indices[i]];
+    }
+
+    indices.forEach(i => {
+        const src = `james/${i}.jpg`;
+        const img = new Image();
+        img.src = src;
+
+        img.onload = () => {
+            const h = randRange(100, 200);
+            const aspect = img.naturalWidth / img.naturalHeight;
+            const w = h * aspect;
+
+            let x, y;
+
+            switch (edge) {
+                case 0: // top edge left to right
+                    x = left + cursor;
+                    y = top;
+                    cursor += w;
+                    if (x + w >= right) {
+                        edge = 1;
+                        cursor = 0;
+                        top += h;
+                    }
+                    break;
+
+                case 1: // right edge top to bottom
+                    x = right - w;
+                    y = top + cursor;
+                    cursor += h;
+                    if (y + h >= bottom) {
+                        edge = 2;
+                        cursor = 0;
+                        right -= w;
+                    }
+                    break;
+
+                case 2: // bottom edge right to left
+                    x = right - cursor - w;
+                    y = bottom - h;
+                    cursor += w;
+                    if (x <= left) {
+                        edge = 3;
+                        cursor = 0;
+                        bottom -= h;
+                    }
+                    break;
+
+                case 3: // left edge bottom to top
+                    x = left;
+                    y = bottom - cursor - h;
+                    cursor += h;
+                    if (y <= top) {
+                        edge = 0;
+                        cursor = 0;
+                        left += w;
+                    }
+                    break;
+            }
+
+            if (!(overlapsHole(x, y, w, h))) {
+                place(src, x, y, h, w);
+            }
+        };
+    });
+}
+
 document.getElementById("seed_btn").onclick = function() {
+    const container = document.getElementById("james_box");
     const seed = cyrb128(document.getElementById("seed").value);
     const rand = splitmix32(seed[0]);
 
-    let visited = [];
+    container.innerHTML = "";
 
-    for (let i=0;i<105;i++) {
-        const i_val = Math.trunc(rand()*103)+1;
-        let r_val = i_val;
-        while (visited.includes(r_val)) {
-            if (visited.length % 2 == 0) {
-                r_val = mod105(r_val+1);
-            }
-            else {
-                r_val = mod105(r_val-1);
-            }
-        }
-        visited.push(r_val);
-    }
-    
+    const boxW = container.clientWidth;
+    const boxH = container.clientHeight || 600;
+
+    const holeW = boxW * 0.2;
+    const holeH = boxH * 0.2;
+    const holeX1 = (boxW - holeW) / 2;
+    const holeY1 = (boxH - holeH) / 2;
+    buildCollage(rand);
+    place2("james/image.jpg", holeX1-100, holeY1-100, 300, 400);
 }
